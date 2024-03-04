@@ -1,0 +1,327 @@
+
+        DECLARE @pivot_columns NVARCHAR(MAX);
+DECLARE @query NVARCHAR(MAX);
+
+-- สร้างรายการคอลัมน์ที่ใช้ใน PIVOT
+SET @pivot_columns = STUFF(
+    (SELECT DISTINCT ',' + QUOTENAME(LTRIM(RTRIM([Parameter])))
+    FROM [Component_Master].[dbo].[Master_matchings]
+    WHERE [Parameter] != ''
+    FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+-- สร้างคำสั่ง SQL ที่ใช้ PIVOT
+SET @query = '
+  WITH set1 AS (
+        SELECT
+            [id],
+            [Fullname],
+            [Model],
+            [Parameter],
+            [USL],
+            [LSL],
+            CL,
+            [USL] - [LSL] AS "X",
+            ([USL] - [LSL]) / 6 AS "Y",
+			([USL] - [LSL]) / 7 AS "N",
+            [Part],
+            [Machine],
+            [empNumber],
+            [createdAt],
+            [updatedAt]
+        FROM [Component_Master].[dbo].[Master_matchings]
+		WHERE [Model] = ''LONGSP''  
+    )
+
+
+  ,set2 as (  SELECT
+        [Model],
+        [Parameter],
+		[LSL],
+        CASE 
+		WHEN [LSL] != 0 THEN ''-infinity''
+		ELSE  ''0''
+		END AS "MIN_L4",
+        CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] - 0.0001, 4)
+		ELSE  ROUND(N - 0.0001, 4)
+		END AS "MAX_L4",
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND ([LSL] , 4)
+		ELSE ROUND (N , 4)
+		END AS MIN_L3,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 1 * [Y]- 0.0001, 4)
+		ELSE ROUND(N + 1 * N - 0.0001, 4)
+		END AS MAX_L3,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 1 * [Y], 4)
+		ELSE ROUND(N + 1 * N, 4)
+		END AS MIN_L2,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 2 * [Y]- 0.0001, 4)
+		ELSE ROUND(N + 2 * N - 0.0001, 4)
+		END AS MAX_L2,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 2 * [Y], 4)
+		ELSE ROUND(N + 2 * N, 4)
+		END AS MIN_L1,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 3 * [Y] - 0.0001, 4)
+		ELSE ROUND(N + 3 * N - 0.0001, 4)
+		END AS MAX_L1,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 3 * [Y] , 4)
+		ELSE ROUND(N + 3 * N, 4)
+		END AS MIN_U1,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 4 * [Y] - 0.0001, 4)
+		ELSE ROUND(N + 4 * N - 0.0001, 4)
+		END AS MAX_U1,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 4 * [Y] , 4)
+		ELSE ROUND(N + 4 * N, 4)
+		END  AS MIN_U2,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 5 * [Y] - 0.0001, 4)
+		ELSE ROUND(N + 5 * N - 0.0001, 4)
+		END  AS MAX_U2,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 5 * [Y] , 4)
+		ELSE ROUND(N + 5 * N, 4)
+		END  AS MIN_U3,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 6 * [Y] , 4)
+		ELSE ROUND(N + 6 * N , 4)
+		END  AS MAX_U3,
+
+		CASE 
+		WHEN [LSL] != 0 THEN ROUND([LSL] + 6 * [Y] + 0.0001, 4)
+		ELSE ROUND(N + 6 * N + 0.0001, 4)
+		END  AS MIN_U4,
+		''+infinity'' as [MAX_U4]
+		FROM set1
+      
+)
+SELECT * 
+FROM (
+    SELECT [Parameter], 0 as MAX_U4 , ''4 Max'' as Rule_3
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MAX_U4)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+UNION ALL
+--------''4''
+SELECT * 
+FROM (
+    SELECT [Parameter],[MIN_U4], ''4 Min'' as Rule_Test
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MIN_U4)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+
+--------''3''
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], MAX_U3 , ''3 Max'' as Rule_3
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MAX_U3)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], [MIN_U3], ''3 Min'' as Rule_Test
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MIN_U3)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+--------''2''
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], MAX_U2 , ''2 Max'' as Rule_3
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MAX_U2)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], [MIN_U2], ''2 Min'' as Rule_Test
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MIN_U2)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+--------''1''
+
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], MAX_U1 , ''1 Max'' as Rule_3
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MAX_U1)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+
+UNION ALL
+
+SELECT * 
+FROM (
+    SELECT [Parameter], [MIN_U1], ''1 Min'' as Rule_Test
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MIN_U1)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], MAX_L1 , ''-1 Max'' as Rule_3
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MAX_L1)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+UNION ALL
+------''-1''
+SELECT * 
+FROM (
+    SELECT [Parameter], [MIN_L1], ''-1 Min'' as Rule_Test
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MIN_L1)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], MAX_L2 , ''-2 Max'' as Rule_3
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MAX_L2)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+UNION ALL
+------''-2''
+SELECT * 
+FROM (
+    SELECT [Parameter], [MIN_L2], ''-2 Min'' as Rule_Test
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MIN_L2)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+
+
+
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], MAX_L3 , ''-3 Max'' as Rule_3
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MAX_L3)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+UNION ALL
+------''-3''
+SELECT * 
+FROM (
+    SELECT [Parameter], [MIN_L3], ''-3 Min'' as Rule_Test
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MIN_L3)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+UNION ALL
+SELECT * 
+FROM (
+    SELECT [Parameter], MAX_L4 , ''-4 Max'' as Rule_3
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MAX_L4)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+UNION ALL
+------''-4''
+SELECT * 
+FROM (
+    SELECT [Parameter], 0 as [MIN_L4], ''-4 Min'' as Rule_Test
+    FROM set2
+) AS SourceTable
+PIVOT
+(
+    SUM(MIN_L4)
+    FOR [Parameter] IN (' + @pivot_columns + ')
+) AS PivotTable
+
+
+';
+-- ดำเนินการเรียกคำสั่ง SQL
+EXEC sp_executesql @query;
+
+        
