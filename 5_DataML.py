@@ -64,7 +64,7 @@ WITH cte AS (
         [Oil_top_data],
         [Oil_bottom_data],
         [Dynamic_Parallelism_Tester].[Model],
-        [Line_no] AS Line,
+        [List_IPAddress].line AS Line,
         ROW_NUMBER() OVER (PARTITION BY [Dynamic_Parallelism_Tester].[Barcode] ORDER BY [Dynamic_Parallelism_Tester].[Time] desc) AS RowNum
     FROM
         [DataforAnalysis].[dbo].[Dynamic_Parallelism_Tester]
@@ -72,7 +72,8 @@ WITH cte AS (
     LEFT JOIN [DataforAnalysis].[dbo].[Ai_press] ON [Dynamic_Parallelism_Tester].Barcode = [Ai_press].Barcode
     LEFT JOIN [DataforAnalysis].[dbo].[Hipot] ON [Dynamic_Parallelism_Tester].Barcode = [Hipot].Barcode
     LEFT JOIN [TransportData].[dbo].[Matching] ON [Dynamic_Parallelism_Tester].Barcode = [Matching].Barcode_Motor
-    LEFT JOIN [T1749].[dbo].[IP_Connect] ON [Dynamic_Parallelism_Tester].IP = [IP_Connect].IP_Address
+    LEFT JOIN [LinkedServer1].[IP_Address].[dbo].[List_IPAddress]
+              ON [Dynamic_Parallelism_Tester].IP COLLATE SQL_Latin1_General_CP1_CI_AS = [List_IPAddress].[IP_Address] COLLATE SQL_Latin1_General_CP1_CI_AS
     WHERE
         [Dynamic_Parallelism_Tester].[Date] > DATEADD(DAY, -10, GETDATE()) AND
         [Dynamic_Parallelism_Tester].[Barcode] NOT LIKE '%OK%' AND

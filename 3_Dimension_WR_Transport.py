@@ -108,8 +108,8 @@ SELECT
     [Line],
     [IP],
     [MfgDate]
-FROM [Temp_TransportData].[dbo].[Dimension_WR] AS source
-WHERE Date > DATEADD(DAY, {Date_BT}, GETDATE()) and NOT EXISTS (
+FROM [TransportData].[dbo].[Dimension_WR] AS source
+WHERE Date > DATEADD(DAY, -20, GETDATE()) and NOT EXISTS (
     SELECT 1
     FROM [DataforAnalysis].[dbo].[Dimension_WR] AS destination
     WHERE

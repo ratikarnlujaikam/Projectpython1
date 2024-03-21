@@ -3,7 +3,7 @@ import pyodbc
 def create_sql_connection():
     # Replace these values with your actual database connection details
     server = '192.168.101.219'
-    database = 'DataforAnalysis_NEW'
+    database = 'DataforAnalysis'
     username = 'DATALYZER'
     password = 'NMB54321'
     driver = '{SQL Server}'
@@ -130,14 +130,15 @@ SELECT
     [IP],
     [MfgDate]
 
-FROM [TransportData].[dbo].[Dynamic_Parallelism_Tester] AS source
-where [Date] between'2023-11-28' and '2023-12-11'
+FROM [Temp_TransportData].[dbo].[Dynamic_Parallelism_Tester] AS source
+WHERE [Date] > DATEADD(DAY,-30, GETDATE()) AND Line = '1-4'
 and  NOT EXISTS (
     SELECT 1
     FROM [DataforAnalysis].[dbo].[Dynamic_Parallelism_Tester] AS destination
     WHERE
         destination.[Barcode] = source.[Barcode]
         AND destination.[Time] = source.[Time]
+        
 );
         """
 

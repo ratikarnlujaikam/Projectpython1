@@ -97,7 +97,7 @@ SELECT
       ,[IP]
       ,[MfgDate]
 FROM [TransportData].[dbo].[Hipot] AS source
-where [Date] between'2023-11-28' and '2023-12-11'
+WHERE [Date] > DATEADD(DAY,-30, GETDATE())
 and  NOT EXISTS (
     SELECT 1
     FROM [DataforAnalysis].[dbo].[Hipot] AS destination
